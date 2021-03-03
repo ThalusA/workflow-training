@@ -7,6 +7,8 @@ on:
   # Triggers the workflow on push events but only for the master, dev, main branch
   push:
     branches: [ master, dev, main ]
+  pull_request:
+    branches: [ master, dev, main ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -31,9 +33,28 @@ jobs:
       - uses: actions/checkout@v2
       
       - name: Setup and execute unit-tests
-        run: make -C $GITHUB_WORKSPACE tests_run
+        run: make --no-print-directory -C $GITHUB_WORKSPACE tests_run > $GITHUB_WORKSPACE/coverage_outputs
         
       - name: Print out coverage
-        run: make -C $GITHUB_WORKSPACE coverage
-
+        run: make --no-print-directory -C $GITHUB_WORKSPACE coverage >> $GITHUB_WORKSPACE/coverage_outputs
+        
+      - uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: coverage_outputs
+          path: $GITHUB_WORKSPACE/coverage_outputs
+  func-test:
+    runs-on: ubuntu-20.04
+    container: epitechcontent/epitest-docker
     
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup binary and execute functional tests
+        run: make -C $GITHUB_WORKSPACE && cd $GITHUB_WORKSPACE && ./functional-test.sh > $GITHUB_WORKSPACE/function-tests_outputs
+        
+      - uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: function-tests_outputs
+          path: $GITHUB_WORKSPACE/function-tests_outputs
